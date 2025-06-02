@@ -1,4 +1,4 @@
-import 'package:ezviz_flutter/ezviz_flutter.dart'; // Import your package
+import 'package:ezviz_flutter/ezviz_flutter.dart'; // Import the enhanced package
 
 class EzvizRepository {
   EzvizClient? _client;
@@ -11,13 +11,55 @@ class EzvizRepository {
   String? _currentAppSecret;
   String? _currentAccessToken;
   String?
-      _encryptionPassword; // Store encryption password for encrypted devices
+  _encryptionPassword; // Store encryption password for encrypted devices
 
   EzvizRepository();
 
+  // Initialize the SDK
+  Future<bool> initializeSDK() async {
+    // Skip if we don't have credentials
+    if ((_currentAppKey == null || _currentAppKey!.isEmpty) &&
+        (_currentAccessToken == null || _currentAccessToken!.isEmpty)) {
+      print('EzvizRepository: No credentials available for SDK initialization');
+      return false;
+    }
+
+    EzvizInitOptions options = EzvizInitOptions(
+      appKey: _currentAppKey ?? '',
+      accessToken: _currentAccessToken ?? '',
+      enableLog: true,
+      enableP2P: false,
+    );
+
+    try {
+      print('EzvizRepository: Initializing native SDK...');
+      print(
+        '  - AppKey: ${_currentAppKey != null ? "${_currentAppKey!.substring(0, 8)}..." : "Not provided"}',
+      );
+      print(
+        '  - AccessToken: ${_currentAccessToken != null ? "${_currentAccessToken!.substring(0, 8)}..." : "Not provided"}',
+      );
+
+      final result = await EzvizManager.shared().initSDK(options);
+
+      if (result) {
+        print('EzvizRepository: Native SDK initialization successful');
+      } else {
+        print('EzvizRepository: Native SDK initialization failed');
+      }
+
+      return result;
+    } catch (e) {
+      print('EzvizRepository: SDK initialization failed with error: $e');
+      return false;
+    }
+  }
+
   // Initialize the client and services with AppKey and AppSecret
-  Future<void> initialize(
-      {required String appKey, required String appSecret}) async {
+  Future<void> initialize({
+    required String appKey,
+    required String appSecret,
+  }) async {
     _currentAppKey = appKey;
     _currentAppSecret = appSecret;
     _currentAccessToken = null;
@@ -25,14 +67,21 @@ class EzvizRepository {
     _authService = AuthService(_client!);
     _deviceService = DeviceService(_client!);
     _liveService = LiveService(_client!);
+
+    // Initialize the native SDK
+    await initializeSDK();
+
     // Initialize other services here
     print('EzvizRepository initialized with AppKey: $appKey');
   }
 
   // Initialize with access token directly (new method)
-  Future<void> initializeWithToken({required String accessToken}) async {
+  Future<void> initializeWithToken({
+    required String accessToken,
+    required String appKey, // AppKey is still required for native SDK
+  }) async {
     _currentAccessToken = accessToken;
-    _currentAppKey = null;
+    _currentAppKey = appKey; // Store the AppKey for native SDK initialization
     _currentAppSecret = null;
 
     // Use the new EzvizClient constructor that supports access token directly
@@ -42,15 +91,20 @@ class EzvizRepository {
     _deviceService = DeviceService(_client!);
     _liveService = LiveService(_client!);
 
+    // Initialize the native SDK with both AppKey and AccessToken
+    await initializeSDK();
+
     print(
-        'EzvizRepository initialized with AccessToken: ${accessToken.substring(0, 10)}...');
+      'EzvizRepository initialized with AccessToken: ${accessToken.substring(0, 10)}... and AppKey: ${appKey.substring(0, 8)}...',
+    );
   }
 
   // Login method - ensures the client is authenticated
   Future<bool> login() async {
     if (_authService == null) {
       throw Exception(
-          'EzvizRepository not initialized. Call initialize() or initializeWithToken() first.');
+        'EzvizRepository not initialized. Call initialize() or initializeWithToken() first.',
+      );
     }
 
     // If we have an access token, skip the login process
@@ -65,11 +119,13 @@ class EzvizRepository {
       return true;
     } on EzvizAuthException catch (e) {
       print(
-          'EzvizRepository: Login failed - EzvizAuthException: ${e.message} (Code: ${e.code})');
+        'EzvizRepository: Login failed - EzvizAuthException: ${e.message} (Code: ${e.code})',
+      );
       return false;
     } on EzvizApiException catch (e) {
       print(
-          'EzvizRepository: Login failed - EzvizApiException: ${e.message} (Code: ${e.code})');
+        'EzvizRepository: Login failed - EzvizApiException: ${e.message} (Code: ${e.code})',
+      );
       return false;
     } catch (e) {
       print('EzvizRepository: Login failed - Unexpected error: $e');
@@ -80,7 +136,8 @@ class EzvizRepository {
   Future<List<Camera>> getCameraList() async {
     if (_deviceService == null) {
       throw Exception(
-          'EzvizRepository not initialized. Call initialize() first.');
+        'EzvizRepository not initialized. Call initialize() first.',
+      );
     }
     try {
       print('About to call DeviceService.getCameraList()...');
@@ -114,14 +171,16 @@ class EzvizRepository {
           }).toList();
         } else {
           print(
-              'API Error - Code: ${response['code']}, Message: ${response['msg']}');
+            'API Error - Code: ${response['code']}, Message: ${response['msg']}',
+          );
           return [];
         }
       } catch (e) {
         print('Error in DeviceService.getCameraList(): $e');
         if (e.toString().contains('int\' is not a subtype of type \'String')) {
           print(
-              'Known type casting error in ezviz_flutter package - returning empty list');
+            'Known type casting error in ezviz_flutter package - returning empty list',
+          );
           return []; // Return empty list to prevent crash
         }
         rethrow;
@@ -138,20 +197,25 @@ class EzvizRepository {
     // Convert cameras to devices for backward compatibility
     final cameras = await getCameraList();
     return cameras
-        .map((camera) => Device(
-              id: camera.id,
-              name: camera.channelName,
-              status: camera.status,
-              thumbnailUrl: camera.thumbnailUrl,
-            ))
+        .map(
+          (camera) => Device(
+            id: camera.id,
+            name: camera.channelName,
+            status: camera.status,
+            thumbnailUrl: camera.thumbnailUrl,
+          ),
+        )
         .toList();
   }
 
-  Future<String> getLiveStreamUrl(String deviceSerial,
-      {int channelNo = 1}) async {
+  Future<String> getLiveStreamUrl(
+    String deviceSerial, {
+    int channelNo = 1,
+  }) async {
     if (_liveService == null) {
       throw Exception(
-          'EzvizRepository not initialized. Call initialize() first.');
+        'EzvizRepository not initialized. Call initialize() first.',
+      );
     }
     try {
       Map<String, dynamic> response;
@@ -171,15 +235,17 @@ class EzvizRepository {
           String protocolName = protocol == 2
               ? 'HLS'
               : protocol == 3
-                  ? 'RTMP'
-                  : protocol == 4
-                      ? 'FLV'
-                      : 'Unknown';
+              ? 'RTMP'
+              : protocol == 4
+              ? 'FLV'
+              : 'Unknown';
           print(
-              'Trying protocol $protocol ($protocolName) for device: $deviceSerial');
+            'Trying protocol $protocol ($protocolName) for device: $deviceSerial',
+          );
           print('Encryption Password: $_encryptionPassword');
           print(
-              'Encrypton password is not null: ${_encryptionPassword != null}');
+            'Encrypton password is not null: ${_encryptionPassword != null}',
+          );
           // Use the new password-enabled method if encryption password is set
           if (_encryptionPassword != null) {
             print('Using encryption password for device: $deviceSerial');
@@ -222,7 +288,8 @@ class EzvizRepository {
             final url = response['data']['url'].toString();
             print(response.toString());
             print(
-                'Got VLC-compatible URL with protocol $protocol ($protocolName): $url');
+              'Got VLC-compatible URL with protocol $protocol ($protocolName): $url',
+            );
 
             // Since we only request VLC-compatible protocols, any URL should work
             workingUrl = url;
@@ -240,8 +307,9 @@ class EzvizRepository {
         return workingUrl;
       } else {
         throw Exception(
-            'Failed to get VLC-compatible stream URL for device $deviceSerial. '
-            'Tried protocols: HLS, RTMP, FLV. Check device connectivity and permissions.');
+          'Failed to get VLC-compatible stream URL for device $deviceSerial. '
+          'Tried protocols: HLS, RTMP, FLV. Check device connectivity and permissions.',
+        );
       }
     } catch (e) {
       print('Error fetching live stream URL for $deviceSerial: $e');
@@ -258,11 +326,15 @@ class EzvizRepository {
   }
 
   Future<String> getPlaybackUrl(
-      String deviceSerial, DateTime startTime, DateTime endTime,
-      {int channelNo = 1}) async {
+    String deviceSerial,
+    DateTime startTime,
+    DateTime endTime, {
+    int channelNo = 1,
+  }) async {
     if (_liveService == null) {
       throw Exception(
-          'EzvizRepository not initialized. Call initialize() first.');
+        'EzvizRepository not initialized. Call initialize() first.',
+      );
     }
 
     try {
@@ -270,7 +342,8 @@ class EzvizRepository {
       // Note: The actual ezviz_flutter package might have specific playback methods
       // For now, we'll use the live stream as a fallback and add a note
       print(
-          'Fetching playback URL for device: $deviceSerial from ${startTime.toIso8601String()} to ${endTime.toIso8601String()}');
+        'Fetching playback URL for device: $deviceSerial from ${startTime.toIso8601String()} to ${endTime.toIso8601String()}',
+      );
 
       // Try to get a live stream URL as fallback since specific playback URL
       // method might need to be implemented in the ezviz_flutter package
@@ -289,11 +362,13 @@ class EzvizRepository {
           response['data']['url'] != null) {
         // For now, return the live URL with a warning
         print(
-            'Warning: Using live stream URL as playback URL. Specific playback API may need implementation.');
+          'Warning: Using live stream URL as playback URL. Specific playback API may need implementation.',
+        );
         return response['data']['url'].toString();
       } else {
         throw Exception(
-            'Failed to get playback URL (Code: ${response['code']}, Message: ${response['msg']})');
+          'Failed to get playback URL (Code: ${response['code']}, Message: ${response['msg']})',
+        );
       }
     } catch (e) {
       print('Error fetching playback URL for $deviceSerial: $e');
@@ -317,6 +392,40 @@ class EzvizRepository {
   // Getter for checking if repository is initialized
   bool get isInitialized => _client != null;
 
+  // Getter for checking if we have credentials for SDK initialization
+  bool get hasCredentials =>
+      (_currentAppKey != null && _currentAppKey!.isNotEmpty) ||
+      (_currentAccessToken != null && _currentAccessToken!.isNotEmpty);
+
+  // Get SDK version for debugging
+  Future<String> getSDKVersion() async {
+    try {
+      return await EzvizManager.shared().sdkVersion;
+    } catch (e) {
+      print('Error getting SDK version: $e');
+      return 'Unknown';
+    }
+  }
+
+  // Check SDK initialization status
+  Future<void> checkSDKStatus() async {
+    try {
+      final version = await getSDKVersion();
+      print('EzvizRepository SDK Status:');
+      print('  - Version: $version');
+      print('  - Repository initialized: $isInitialized');
+      print('  - Has credentials: $hasCredentials');
+      print(
+        '  - Current AppKey: ${_currentAppKey != null ? "${_currentAppKey!.substring(0, 8)}..." : "None"}',
+      );
+      print(
+        '  - Current AccessToken: ${_currentAccessToken != null ? "${_currentAccessToken!.substring(0, 8)}..." : "None"}',
+      );
+    } catch (e) {
+      print('Error checking SDK status: $e');
+    }
+  }
+
   // Getters for app credentials (useful for debugging)
   String? get currentAppKey => _currentAppKey;
   String? get currentAppSecret => _currentAppSecret;
@@ -325,6 +434,15 @@ class EzvizRepository {
   void setEncryptionPassword(String password) {
     _encryptionPassword = password;
     print('EzvizRepository: Encryption password set for encrypted devices');
+  }
+
+  // Get current encryption password
+  String? get encryptionPassword => _encryptionPassword;
+
+  // Set encryption password for specific device
+  void setEncryptionPasswordForDevice(String deviceSerial, String password) {
+    _encryptionPassword = password;
+    print('EzvizRepository: Encryption password set for device $deviceSerial');
   }
 
   // Method to check device encryption status and info

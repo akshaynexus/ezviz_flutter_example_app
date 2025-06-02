@@ -68,11 +68,10 @@ packages:
   ezviz_flutter:
     dependency: "direct main"
     description:
-      name: ezviz_flutter
-      sha256: "2e4eb6232c4b0027d9deb9fb5dae90a607b8ad8a74dade3b19db21c7b804cc54"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.3"
+      path: "../ezviz_flutter"
+      relative: true
+    source: path
+    version: "1.0.7"
   fake_async:
     dependency: transitive
     description:
@@ -98,31 +97,15 @@ packages:
     dependency: "direct dev"
     description:
       name: flutter_lints
-      sha256: "9e8c3858111da373efc5aa341de011d9bd23e2c5c5e0c62bccf32438e192d7b1"
+      sha256: "5398f14efa795ffb7a33e9b6a08798b26a180edac4ad7db3f231e40f82ce11e1"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.2"
+    version: "5.0.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_vlc_player:
-    dependency: "direct main"
-    description:
-      name: flutter_vlc_player
-      sha256: c2554ae0de8133ff5c6d174381f8097f482cdb51ea5aa75d03ee139b71490b53
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.4.3"
-  flutter_vlc_player_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_vlc_player_platform_interface
-      sha256: "99fbb806f86ce1c53ba007157c183104a100aa643eda0cec7e71118bf0460578"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.5"
   http:
     dependency: "direct main"
     description:
@@ -175,10 +158,10 @@ packages:
     dependency: transitive
     description:
       name: lints
-      sha256: cbf8d4b858bb0134ef3ef87841abdf8d63bfc255c266b7bf6b39daa1085c4290
+      sha256: c35bb79562d980e9a453fc715854e1ed39e24e7d0297a880ef54e17f9874a9d7
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.0"
+    version: "5.1.1"
   matcher:
     dependency: transitive
     description:

@@ -56,19 +56,29 @@ class _AuthPageState extends State<AuthPage> {
     if (_formKey.currentState!.validate()) {
       final encryptionPassword =
           _hasEncryptedDevices && _encryptionPasswordController.text.isNotEmpty
-              ? _encryptionPasswordController.text
-              : null;
+          ? _encryptionPasswordController.text
+          : null;
 
       if (_useAccessToken) {
         final accessToken = _accessTokenController.text;
-        BlocProvider.of<AuthBloc>(context).add(AuthTokenSubmitted(accessToken,
-            encryptionPassword: encryptionPassword));
+        final appKey = _appKeyController.text;
+        BlocProvider.of<AuthBloc>(context).add(
+          AuthTokenSubmitted(
+            accessToken,
+            appKey,
+            encryptionPassword: encryptionPassword,
+          ),
+        );
       } else {
         final appKey = _appKeyController.text;
         final appSecret = _appSecretController.text;
-        BlocProvider.of<AuthBloc>(context).add(AuthCredentialsSubmitted(
-            appKey, appSecret,
-            encryptionPassword: encryptionPassword));
+        BlocProvider.of<AuthBloc>(context).add(
+          AuthCredentialsSubmitted(
+            appKey,
+            appSecret,
+            encryptionPassword: encryptionPassword,
+          ),
+        );
       }
     }
   }
@@ -84,7 +94,7 @@ class _AuthPageState extends State<AuthPage> {
             gradient: LinearGradient(
               colors: [
                 Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondaryContainer
+                Theme.of(context).colorScheme.secondaryContainer,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -117,9 +127,7 @@ class _AuthPageState extends State<AuthPage> {
                       Text(
                         'Welcome to EZVIZ Example',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
+                        style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
@@ -127,7 +135,7 @@ class _AuthPageState extends State<AuthPage> {
                       const SizedBox(height: 8),
                       Text(
                         _useAccessToken
-                            ? 'Enter your EZVIZ Access Token'
+                            ? 'Enter your EZVIZ App Key and Access Token'
                             : 'Enter your EZVIZ App Key and App Secret',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleMedium,
@@ -135,12 +143,12 @@ class _AuthPageState extends State<AuthPage> {
                       const SizedBox(height: 8),
                       Text(
                         _useAccessToken
-                            ? 'Use an existing access token for authentication'
+                            ? 'Use an existing access token with your app key for authentication'
                             : 'Get your credentials from the EZVIZ Open Platform',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
+                          color: Colors.grey[600],
+                        ),
                       ),
                       const SizedBox(height: 20),
                       // Toggle between authentication methods
@@ -171,6 +179,21 @@ class _AuthPageState extends State<AuthPage> {
                       const SizedBox(height: 20),
                       // Show appropriate form fields based on authentication mode
                       if (_useAccessToken) ...[
+                        TextFormField(
+                          controller: _appKeyController,
+                          decoration: const InputDecoration(
+                            labelText: 'App Key',
+                            hintText: 'Enter your EZVIZ App Key',
+                            prefixIcon: Icon(Icons.key),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'App Key is required for native SDK initialization';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: _accessTokenController,
                           decoration: const InputDecoration(
@@ -239,9 +262,9 @@ class _AuthPageState extends State<AuthPage> {
                                       children: [
                                         Text(
                                           'Encrypted Devices',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -295,14 +318,18 @@ class _AuthPageState extends State<AuthPage> {
 
                       const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed:
-                            state is AuthLoading ? null : _submitCredentials,
+                        onPressed: state is AuthLoading
+                            ? null
+                            : _submitCredentials,
                         child: state is AuthLoading
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 3, color: Colors.white))
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              )
                             : const Text('Login'),
                       ),
                       const SizedBox(height: 16),
@@ -319,9 +346,11 @@ class _AuthPageState extends State<AuthPage> {
                             ),
                           );
                         },
-                        child: Text(_useAccessToken
-                            ? 'Need help with Access Tokens?'
-                            : 'Need credentials? Visit EZVIZ Open Platform'),
+                        child: Text(
+                          _useAccessToken
+                              ? 'Need help with Access Tokens?'
+                              : 'Need credentials? Visit EZVIZ Open Platform',
+                        ),
                       ),
                     ],
                   ),

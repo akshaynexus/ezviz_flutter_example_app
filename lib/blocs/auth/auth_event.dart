@@ -16,8 +16,11 @@ class AuthCredentialsSubmitted extends AuthEvent {
   final String appSecret;
   final String? encryptionPassword; // Optional password for encrypted devices
 
-  const AuthCredentialsSubmitted(this.appKey, this.appSecret,
-      {this.encryptionPassword});
+  const AuthCredentialsSubmitted(
+    this.appKey,
+    this.appSecret, {
+    this.encryptionPassword,
+  });
 
   @override
   List<Object?> get props => [appKey, appSecret, encryptionPassword];
@@ -26,12 +29,17 @@ class AuthCredentialsSubmitted extends AuthEvent {
 // Event triggered when access token is submitted
 class AuthTokenSubmitted extends AuthEvent {
   final String accessToken;
+  final String appKey; // AppKey is required for native SDK initialization
   final String? encryptionPassword; // Optional password for encrypted devices
 
-  const AuthTokenSubmitted(this.accessToken, {this.encryptionPassword});
+  const AuthTokenSubmitted(
+    this.accessToken,
+    this.appKey, {
+    this.encryptionPassword,
+  });
 
   @override
-  List<Object?> get props => [accessToken, encryptionPassword];
+  List<Object?> get props => [accessToken, appKey, encryptionPassword];
 }
 
 // Event triggered for logout

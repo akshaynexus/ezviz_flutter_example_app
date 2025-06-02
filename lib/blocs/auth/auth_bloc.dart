@@ -11,9 +11,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // final TokenStorage _tokenStorage;
 
   AuthBloc({required EzvizRepository ezvizRepository})
-      : _ezvizRepository = ezvizRepository,
-        // _tokenStorage = tokenStorage,
-        super(AuthInitial()) {
+    : _ezvizRepository = ezvizRepository,
+      // _tokenStorage = tokenStorage,
+      super(AuthInitial()) {
     on<AuthAppStarted>(_onAppStarted);
     on<AuthCredentialsSubmitted>(_onCredentialsSubmitted);
     on<AuthTokenSubmitted>(_onTokenSubmitted);
@@ -21,19 +21,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onAppStarted(
-      AuthAppStarted event, Emitter<AuthState> emit) async {
+    AuthAppStarted event,
+    Emitter<AuthState> emit,
+  ) async {
     // Since we're now using UI-based authentication,
     // we start with AuthInitial to show the login page
     emit(AuthInitial());
   }
 
   Future<void> _onCredentialsSubmitted(
-      AuthCredentialsSubmitted event, Emitter<AuthState> emit) async {
+    AuthCredentialsSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       // Initialize the repository with user-provided credentials
       await _ezvizRepository.initialize(
-          appKey: event.appKey, appSecret: event.appSecret);
+        appKey: event.appKey,
+        appSecret: event.appSecret,
+      );
 
       // Set encryption password if provided
       if (event.encryptionPassword != null) {
@@ -56,12 +62,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onTokenSubmitted(
-      AuthTokenSubmitted event, Emitter<AuthState> emit) async {
+    AuthTokenSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
-      // Initialize the repository with access token
+      // Initialize the repository with access token and appKey
       await _ezvizRepository.initializeWithToken(
-          accessToken: event.accessToken);
+        accessToken: event.accessToken,
+        appKey: event.appKey,
+      );
 
       // Set encryption password if provided
       if (event.encryptionPassword != null) {
@@ -72,9 +82,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (loginSuccess) {
         print(
-            'AuthBloc: Login successful with AccessToken: ${event.accessToken.substring(0, 10)}...');
-        emit(AuthSuccess(
-            appKey: 'Token-based')); // Use placeholder since we're using token
+          'AuthBloc: Login successful with AccessToken: ${event.accessToken.substring(0, 10)}... and AppKey: ${event.appKey.substring(0, 8)}...',
+        );
+        emit(
+          AuthSuccess(appKey: event.appKey),
+        ); // Use the actual appKey instead of placeholder
       } else {
         print('AuthBloc: Login failed by repository.');
         emit(const AuthFailure('Invalid access token or login failed.'));
@@ -82,12 +94,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       print('AuthBloc: Login error: ${e.toString()}');
       emit(
-          AuthFailure('An error occurred during token login: ${e.toString()}'));
+        AuthFailure('An error occurred during token login: ${e.toString()}'),
+      );
     }
   }
 
   Future<void> _onLogoutRequested(
-      AuthLogoutRequested event, Emitter<AuthState> emit) async {
+    AuthLogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       await _ezvizRepository.logout();
